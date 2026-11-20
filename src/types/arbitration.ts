@@ -177,7 +177,7 @@ export interface ArbitrationCase {
   analysisModel?: string;
 }
 
-export type AppView = 'home' | 'workspace' | 'map' | 'review';
+export type AppView = 'home' | 'workspace' | 'map' | 'review' | 'aria' | 'hearing' | 'sage';
 
 export type GeminiErrorCategory =
   | 'QUOTA_EXCEEDED'

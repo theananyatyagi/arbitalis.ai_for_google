@@ -1,57 +1,168 @@
 @import "tailwindcss";
 
-@theme {
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-espresso: #231612;
-  --color-burgundy: #7E2833;
-  --color-ivory: #F5F1EC;
-  --color-taupe: #DED6CF;
-}
+/* ── Stitch "Judicial Precision" Design System Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
+/* ── Judicial Precision Design Tokens ── */
 :root {
-  --bg-ivory: #F5F1EC;
-  --bg-white: #FFFFFF;
-  --text-espresso: #231612;
-  --accent-burgundy: #7E2833;
-  --border-taupe: #DED6CF;
+  /* Surfaces */
+  --color-surface: #fdf9f4;
+  --color-surface-dim: #ddd9d5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f3ee;
+  --color-surface-container: #f1ede8;
+  --color-surface-container-high: #ebe8e3;
+  --color-surface-container-highest: #e6e2dd;
+  --color-surface-variant: #e6e2dd;
+
+  /* Primary – Deep Burgundy */
+  --color-primary: #60111e;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #7e2833;
+  --color-on-primary-container: #ff979e;
+  --color-primary-fixed: #ffdadb;
+  --color-primary-fixed-dim: #ffb2b6;
+  --color-inverse-primary: #ffb2b6;
+
+  /* Secondary – Espresso */
+  --color-secondary: #6d5a55;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #f7ddd6;
+  --color-on-secondary-container: #73605b;
+  --color-secondary-fixed: #f7ddd6;
+  --color-secondary-fixed-dim: #dac1ba;
+
+  /* Tertiary – Warm Umber */
+  --color-tertiary: #442a17;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #5d402c;
+  --color-on-tertiary-container: #d5ad92;
+  --color-tertiary-fixed: #ffdcc6;
+  --color-tertiary-fixed-dim: #e8bea3;
+
+  /* Semantic */
+  --color-on-surface: #1c1c19;
+  --color-on-surface-variant: #554243;
+  --color-outline: #887272;
+  --color-outline-variant: #dbc0c1;
+  --color-inverse-surface: #31302d;
+  --color-inverse-on-surface: #f4f0eb;
+  --color-surface-tint: #9d3f49;
+  --color-background: #fdf9f4;
+  --color-on-background: #1c1c19;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Status semantic tokens */
+  --color-verified-bg: #ebf3ed;
+  --color-verified-text: #1c542d;
+  --color-pending-bg: #f5efe6;
+  --color-pending-text: #7a5826;
+  --color-rejected-bg: #f9ebea;
+  --color-rejected-text: #661d1d;
+  --color-conflict-bg: #f8efeb;
+  --color-conflict-text: #7e2833;
 }
 
-@layer base {
-  html {
-    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-    background-color: #F5F1EC;
-    color: #231612;
-  }
-
-  h1, h2, .font-editorial {
-    font-family: "Cormorant Garamond", Georgia, serif;
-  }
-
-  button, a, input, textarea, select {
-    outline-offset: 2px;
-  }
-
-  :focus-visible {
-    outline: 2px solid #7E2833;
-    outline-offset: 2px;
-  }
+/* ── Base Typography ── */
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+/* ── Utility Classes for Stitch Design System ── */
+.font-serif-editorial {
+  font-family: 'Newsreader', Georgia, serif;
+}
+.font-mono-citation {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+.font-ui {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
-.text-balance {
-  text-wrap: balance;
+/* Stitch text hierarchy */
+.text-headline-xl { font-family: 'Newsreader', serif; font-size: 40px; font-weight: 500; line-height: 48px; letter-spacing: -0.02em; }
+.text-headline-lg { font-family: 'Newsreader', serif; font-size: 32px; font-weight: 500; line-height: 40px; letter-spacing: -0.015em; }
+.text-headline-md { font-family: 'Newsreader', serif; font-size: 22px; font-weight: 500; line-height: 28px; }
+.text-headline-sm { font-family: 'Newsreader', serif; font-size: 18px; font-weight: 600; line-height: 24px; }
+.text-body-lg { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 400; line-height: 26px; }
+.text-body-md { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 400; line-height: 22px; }
+.text-body-sm { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 400; line-height: 18px; }
+.text-label-upper { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 700; line-height: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+.text-citation { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 400; line-height: 18px; letter-spacing: -0.01em; }
+.text-citation-bold { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; line-height: 18px; }
+
+@media (max-width: 768px) {
+  .text-headline-xl { font-size: 30px; line-height: 38px; }
+  .text-headline-lg { font-size: 24px; line-height: 32px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* ── Evidence Card Base ── */
+.evidence-card {
+  background: #ffffff;
+  border: 1px solid #e4ded8;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: box-shadow 0.15s ease;
 }
+.evidence-card:hover {
+  box-shadow: 0 4px 16px -2px rgba(35, 22, 18, 0.06), 0 1px 3px 0 rgba(35, 22, 18, 0.03);
+}
+
+/* ── Gap Card ── */
+.gap-card {
+  background: #faf6f5;
+  border: 1.5px dashed #c0392b;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+/* ── Citation Blockquote ── */
+.citation-block {
+  background: #faf8f5;
+  border-left: 2px solid #7e2833;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* ── Status Badges ── */
+.badge-verified { background: #ebf3ed; color: #1c542d; }
+.badge-pending { background: #f5efe6; color: #7a5826; }
+.badge-rejected { background: #f9ebea; color: #661d1d; }
+.badge-conflict { background: #f8efeb; color: #7e2833; }
+.badge-base { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* ── Nav active underline ── */
+.nav-link-active {
+  color: #60111e;
+  font-weight: 600;
+  border-bottom: 2px solid #7e2833;
+  padding-bottom: 2px;
+}
+
+/* ── Scrollbar hide ── */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+/* ── Smooth focus ── */
+:focus-visible {
+  outline: 2px solid #7e2833;
+  outline-offset: 2px;
+}
+
+/* ── Waveform animation ── */
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+.wave-bar { animation: waveBar 1.2s ease-in-out infinite; transform-origin: bottom; }
+.wave-bar:nth-child(2n) { animation-delay: 0.2s; }
+.wave-bar:nth-child(3n) { animation-delay: 0.4s; }
+.wave-bar:nth-child(4n) { animation-delay: 0.1s; }
