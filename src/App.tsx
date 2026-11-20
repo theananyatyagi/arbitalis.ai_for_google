@@ -426,6 +426,14 @@ export default function App() {
             }}
             onUserInteraction={pauseTourOnUserInteraction}
             demoRevealCount={isDemoTourActive && demoStage === 4 ? demoRevealCount : null}
+            onUpdateNodeReview={handleUpdateNodeReview}
+            onAskAriaAboutNode={(node) => {
+              pauseTourOnUserInteraction(`Asked ARIA about ${node.label}`);
+              setAriaPrefill(
+                `What does the documentary record establish regarding "${node.label}"?`
+              );
+              setAriaOpen(true);
+            }}
           />
         )}
 

@@ -74,3 +74,31 @@ test('parseApiResponse detects Starting Server HTML interstitials without exposi
   assert.equal(parsed.error?.retryable, true);
   assert.doesNotMatch(parsed.error?.message || '', /<!doctype/i);
 });
+
+test('Primary Issue 1 supports complete end-to-end exploration of competing positions, contract clauses, and missing gaps', () => {
+  const issue1Nodes = DEMO_CASE.nodes.filter((n) => n.issueId === 'issue-delay-45');
+
+  const claimantPos = issue1Nodes.find((n) => n.category === 'claimant_position');
+  assert.ok(claimantPos, 'Claimant position must exist for primary delay issue');
+  assert.ok(claimantPos.citations.length > 0, 'Claimant position must have verifiable citation');
+  assert.equal(claimantPos.citations[0].docId, 'EX-04');
+  assert.equal(claimantPos.citations[0].verificationStatus, 'verified');
+
+  const respondentPos = issue1Nodes.find((n) => n.category === 'respondent_position');
+  assert.ok(respondentPos, 'Respondent position must exist for primary delay issue');
+  assert.ok(respondentPos.citations.length > 0, 'Respondent position must have verifiable citation');
+  assert.equal(respondentPos.citations[0].docId, 'EX-05');
+  assert.equal(respondentPos.citations[0].verificationStatus, 'verified');
+
+  const supporting = issue1Nodes.filter((n) => n.category === 'supporting_evidence');
+  assert.ok(supporting.length >= 1, 'Must have at least 1 supporting evidence exhibit');
+
+  const contradictory = issue1Nodes.filter((n) => n.category === 'contradictory_evidence');
+  assert.ok(contradictory.length >= 1, 'Must have at least 1 contradictory technical exhibit');
+
+  const contracts = issue1Nodes.filter((n) => n.category === 'contractual_obligation');
+  assert.ok(contracts.length >= 1, 'Must have Clause 4.1 contractual obligation');
+
+  const gap = issue1Nodes.find((n) => n.category === 'missing_evidence');
+  assert.ok(gap, 'Missing Baseline Programme gap must exist for human evaluation');
+});

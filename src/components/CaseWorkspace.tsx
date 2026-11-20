@@ -153,7 +153,7 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
     setApiError(null);
     setUploadError(null);
     setIsAnalyzing(true);
-    setAnalysisStepText('Uploading PDF documents and running Gemini arbitration intelligence...');
+    setAnalysisStepText('Preparing document record and extracted page text...');
 
     abortControllerRef.current?.abort();
     const controller = new AbortController();
@@ -178,6 +178,8 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
       });
       formData.append('metadata', JSON.stringify(metadata));
 
+      setAnalysisStepText('Reasoning with Gemini 3.1 Flash Lite (Timeout window: 65s)...');
+
       const parsed = await fetchApiJson<{
         analysis: Parameters<typeof buildVerifiedLiveCase>[0];
         model?: string;
@@ -198,7 +200,7 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
         return;
       }
 
-      setAnalysisStepText('Verifying cited passages against extracted PDF pages...');
+      setAnalysisStepText('Verifying cited passages verbatim against extracted PDF pages...');
 
       const docsForCase: CaseDocument[] = stagedUploads.map((u) => ({
         id: u.docId,
@@ -355,7 +357,7 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <div className="font-semibold text-[#7E2833] flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4" />
-                  <span>Analysis Failed ({apiError.category.replace('_', ' ')})</span>
+                  <span>Analysis Notice ({apiError.category.replace('_', ' ')})</span>
                 </div>
                 {stagedUploads.length > 0 && (
                   <button
@@ -369,6 +371,16 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
                 )}
               </div>
               <p className="text-[#231612]">{apiError.message}</p>
+              {apiError.category === 'AUTH_ERROR' && (
+                <p className="text-[11px] text-[#7E2833] font-medium pt-1 border-t border-[#7E2833]/20">
+                  Tip: Configure GEMINI_API_KEY in your local .env file, or click &ldquo;Explore a Demo&rdquo; on the Home screen to test all features with the prepared arbitral record.
+                </p>
+              )}
+              {apiError.category === 'CAPACITY_ERROR' && (
+                <p className="text-[11px] text-[#7E2833] font-medium pt-1 border-t border-[#7E2833]/20">
+                  Tip: If your document batch is large, try analyzing 1–2 key pleadings or contracts first to stay within model limits.
+                </p>
+              )}
             </div>
           )}
 
