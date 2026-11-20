@@ -711,8 +711,8 @@ Strict rules:
 
       const { result: ttsResponse } = await runWithModelFallback(
         [
-          { model: 'gemini-3.8-flash-lite-tts', apiVersion: 'v1beta', timeoutMs: 10_000, retries: 1 },
-          { model: 'gemini-3.8-flash-tts', apiVersion: 'v1beta', timeoutMs: 10_000, retries: 0 },
+          { model: 'gemini-3.8-flash-lite-tts', apiVersion: 'v1beta', timeoutMs: 20_000, retries: 1 },
+          { model: 'gemini-3.8-flash-tts', apiVersion: 'v1beta', timeoutMs: 30_000, retries: 0 },
         ],
         (ttsModel, ttsClient, attemptSignal) =>
           ttsClient.models.generateContent({
@@ -857,8 +857,8 @@ export async function transcribeHearingAudio(
 
   const { result: segments, modelUsed } = await runWithModelFallback(
     [
-      { model: 'gemini-3.5-transcribe', apiVersion: 'v1beta', timeoutMs: 6_500, retries: 0 },
-      { model: 'gemini-3.1-flash-lite', timeoutMs: 14_000, retries: 1 },
+      { model: 'gemini-3.5-transcribe', apiVersion: 'v1beta', timeoutMs: 25_000, retries: 0 },
+      { model: 'gemini-3.1-flash-lite', timeoutMs: 60_000, retries: 1 },
       { model: 'gemini-4-hydrogen', timeoutMs: 7_000, retries: 0 },
     ],
     async (model, ai, attemptSignal) => {
