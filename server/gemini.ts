@@ -49,7 +49,7 @@ export function classifyGeminiError(err: unknown): StructuredApiError {
   if (lower.includes('timed out') || lower.includes('timeout')) {
     return {
       category: 'CAPACITY_ERROR',
-      message: 'Gemini AI took too long to respond due to high model demand. Please retry.',
+      message: 'Analysis timed out while processing documents with Gemini AI. Please retry.',
       detail: rawMessage,
       retryable: true,
       statusCode: 504,
@@ -311,7 +311,7 @@ async function runWithModelFallback<T>(
       const timedOutLocally = attemptController.signal.aborted && !parentAborted;
       const effectiveErr = timedOutLocally
         ? Object.assign(
-            new Error('Gemini AI took too long to respond due to high model demand. Please retry.'),
+            new Error('Analysis timed out while processing documents with Gemini AI. Please retry.'),
             {
               category: 'CAPACITY_ERROR' as GeminiErrorCategory,
               statusCode: 504,
@@ -419,8 +419,8 @@ Instructions:
 
   const { result: response, modelUsed } = await runWithModelFallback(
     [
-      { model: 'gemini-3.1-flash-lite', timeoutMs: 24_000, retries: 1 },
-      { model: 'gemini-4-hydrogen', timeoutMs: 12_000, retries: 0 },
+      { model: 'gemini-3.1-flash-lite', timeoutMs: 65_000, retries: 1 },
+      { model: 'gemini-4-hydrogen', timeoutMs: 45_000, retries: 0 },
     ],
     (model, ai, attemptSignal) =>
       ai.models.generateContent({
