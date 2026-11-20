@@ -1,0 +1,6 @@
+{
+  "name": "Arbitalis.AI",
+  "description": "Arbitration intelligence workspace transforming complex dispute records into connected evidence, competing positions, source-verifiable reasoning, and human-reviewed findings.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

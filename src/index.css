@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-espresso: #231612;
+  --color-burgundy: #7E2833;
+  --color-ivory: #F5F1EC;
+  --color-taupe: #DED6CF;
+}
+
+:root {
+  --bg-ivory: #F5F1EC;
+  --bg-white: #FFFFFF;
+  --text-espresso: #231612;
+  --accent-burgundy: #7E2833;
+  --border-taupe: #DED6CF;
+}
+
+@layer base {
+  html {
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    background-color: #F5F1EC;
+    color: #231612;
+  }
+
+  h1, h2, .font-editorial {
+    font-family: "Cormorant Garamond", Georgia, serif;
+  }
+
+  button, a, input, textarea, select {
+    outline-offset: 2px;
+  }
+
+  :focus-visible {
+    outline: 2px solid #7E2833;
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
