@@ -758,6 +758,88 @@ Strict rules:
   };
 }
 
+/**
+ * Transcript segments as returned by /api/transcribe.
+ * `timestamp` and `speaker` are null when the model did not genuinely provide them —
+ * they are never synthesised by the server.
+ */
+export interface TranscriptSegmentOut {
+  timestamp: string | null;
+  speaker: string | null;
+  text: string;
+}
+
+export const NO_SPEECH_TEXT = '[No clear speech detected]';
+
+const TIMESTAMP_RE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
+const UNKNOWN_SPEAKER_TOKENS = new Set([
+  '',
+  'unknown',
+  'n/a',
+  'na',
+  'null',
+  'none',
+  'unspecified',
+  'unidentified',
+  'not available',
+]);
+
+export function normalizeTimestamp(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const t = value.trim().replace(/^\[|\]$/g, '').trim();
+  return TIMESTAMP_RE.test(t) ? t : null;
+}
+
+export function normalizeSpeaker(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const t = value.trim();
+  return UNKNOWN_SPEAKER_TOKENS.has(t.toLowerCase()) ? null : t;
+}
+
+function noSpeechSegment(): TranscriptSegmentOut {
+  return { timestamp: null, speaker: null, text: NO_SPEECH_TEXT };
+}
+
+/** Cleans model-returned segments: keeps genuine values, turns anything unknown into null. */
+export function normalizeTranscriptSegments(raw: unknown): TranscriptSegmentOut[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const segments = list
+    .map((s): TranscriptSegmentOut => {
+      const item = (s ?? {}) as { timestamp?: unknown; speaker?: unknown; text?: unknown };
+      const text = typeof item.text === 'string' ? item.text.trim() : '';
+      if (text === NO_SPEECH_TEXT) return noSpeechSegment();
+      return {
+        timestamp: normalizeTimestamp(item.timestamp),
+        speaker: normalizeSpeaker(item.speaker),
+        text,
+      };
+    })
+    .filter((s) => s.text.length > 0);
+  return segments.length > 0 ? segments : [noSpeechSegment()];
+}
+
+/**
+ * Parses plain-text transcription output. A leading "[MM:SS]" timestamp or a "Name:" label is kept
+ * only when it is literally present in the model's text; otherwise the field stays null.
+ */
+export function parsePlainTextTranscript(rawText: string): TranscriptSegmentOut[] {
+  const lines = (rawText ?? '')
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return [noSpeechSegment()];
+  const LINE_RE =
+    /^(?:\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*[-\u2013\u2014]?\s*)?(?:([A-Za-z][A-Za-z0-9 ._()'-]{1,40}):\s+)?(.+)$/;
+  return normalizeTranscriptSegments(
+    lines.map((line) => {
+      const m = line.match(LINE_RE);
+      return m
+        ? { timestamp: m[1] ?? null, speaker: m[2] ?? null, text: m[3] }
+        : { timestamp: null, speaker: null, text: line };
+    })
+  );
+}
+
 export async function transcribeHearingAudio(
   params: {
     base64Audio: string;
@@ -788,7 +870,7 @@ export async function transcribeHearingAudio(
             parts: [
               audioPart,
               {
-                text: `Transcribe only clearly audible speech in this arbitration hearing audio ("${params.title}"). Do not invent words if silent.`,
+                text: `Transcribe only clearly audible speech in this arbitration hearing audio ("${params.title}"). Do not invent words if silent. Add a speaker label or [MM:SS] timestamp to a line only if you can genuinely determine it; never guess.`,
               },
             ],
           },
@@ -796,30 +878,7 @@ export async function transcribeHearingAudio(
             abortSignal: attemptSignal,
           },
         });
-        const rawText = (r.text ?? '').trim();
-        if (!rawText) {
-          return [
-            {
-              timestamp: '00:00',
-              speaker: 'Transcript',
-              text: '[No clear speech detected]',
-            },
-          ];
-        }
-        const lines = rawText
-          .split(/\n+/)
-          .map((l) => l.trim())
-          .filter(Boolean);
-        return lines.map((line, idx) => {
-          const match = line.match(/^([A-Za-z0-9\s._-]{2,32}):\s*(.+)$/);
-          const mm = String(Math.floor((idx * 15) / 60)).padStart(2, '0');
-          const ss = String((idx * 15) % 60).padStart(2, '0');
-          return {
-            timestamp: `${mm}:${ss}`,
-            speaker: match ? match[1].trim() : `Speaker ${idx + 1}`,
-            text: match ? match[2].trim() : line,
-          };
-        });
+        return parsePlainTextTranscript((r.text ?? '').trim());
       }
 
       const r = await ai.models.generateContent({
@@ -828,7 +887,7 @@ export async function transcribeHearingAudio(
           parts: [
             audioPart,
             {
-              text: `Transcribe this arbitration hearing audio ("${params.title}") accurately. Identify distinct speakers where audible and provide timestamps (MM:SS). CRITICAL: Transcribe ONLY actual spoken words clearly audible in the recording. If the audio is silent, contains only tones or background noise, or has no clear speech, DO NOT invent or guess dialogue — return exactly one segment with timestamp "00:00", speaker "Transcript", and text "[No clear speech detected]".`,
+              text: `Transcribe this arbitration hearing audio ("${params.title}") accurately. Where speakers are genuinely distinguishable, label them; where timing is genuinely known, give timestamps as MM:SS. If a speaker or timestamp cannot be determined, return null for that field — NEVER guess or invent one. CRITICAL: Transcribe ONLY actual spoken words clearly audible in the recording. If the audio is silent, contains only tones or background noise, or has no clear speech, DO NOT invent or guess dialogue — return exactly one segment with timestamp null, speaker null, and text "[No clear speech detected]".`,
             },
           ],
         },
@@ -849,11 +908,11 @@ export async function transcribeHearingAudio(
                 items: {
                   type: Type.OBJECT,
                   properties: {
-                    timestamp: { type: Type.STRING },
-                    speaker: { type: Type.STRING },
+                    timestamp: { type: Type.STRING, nullable: true },
+                    speaker: { type: Type.STRING, nullable: true },
                     text: { type: Type.STRING },
                   },
-                  required: ['timestamp', 'speaker', 'text'],
+                  required: ['text'],
                 },
               },
             },
@@ -863,9 +922,9 @@ export async function transcribeHearingAudio(
       });
 
       const parsed = JSON.parse((r.text ?? '{"segments":[]}').trim()) as {
-        segments: { timestamp: string; speaker: string; text: string }[];
+        segments?: unknown;
       };
-      return parsed.segments;
+      return normalizeTranscriptSegments(parsed.segments);
     },
     signal
   );

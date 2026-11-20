@@ -70,8 +70,7 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
       formData.append('title', title || filename);
 
       const parsed = await fetchApiJson<{
-        segments?: { timestamp: string; speaker: string; text: string }[];
-        model?: string;
+        segments?: { timestamp: string | null; speaker: string | null; text: string }[];
       }>('/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -87,18 +86,13 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
         return;
       }
 
-      // The plain-text transcription model returns no timing or speaker data; the server
-      // fills those fields with placeholders (index-based times, "Speaker N"). Never present
-      // placeholders as recorded facts.
-      const plainTextModel = parsed.data.model === 'gemini-3.5-transcribe';
+      // The server returns null when the model did not genuinely provide a timestamp or speaker.
+      // Show that honestly instead of inventing a value.
       const segments: TranscriptSegment[] = (parsed.data.segments || []).map(
         (s, idx) => ({
           id: `seg-${Date.now()}-${idx}`,
-          timestamp: plainTextModel || !s.timestamp ? NO_TIMESTAMP : s.timestamp,
-          speaker:
-            !s.speaker || (plainTextModel && /^Speaker \d+$/.test(s.speaker))
-              ? UNATTRIBUTED_SPEAKER
-              : s.speaker,
+          timestamp: s.timestamp || NO_TIMESTAMP,
+          speaker: s.speaker || UNATTRIBUTED_SPEAKER,
           text: s.text || '',
           verificationNote: 'Recorded statement — requires verification before treating as established fact.',
         })
@@ -439,7 +433,9 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
                     <div className="space-y-2">
                       {tr.segments.map((seg) => (
                         <div key={seg.id} className="text-xs text-[#231612]/85 leading-relaxed">
-                          <span className="font-mono text-[#7E2833] mr-2">[{seg.timestamp}]</span>
+                          <span className="font-mono text-[#7E2833] mr-2">
+                            {seg.timestamp === NO_TIMESTAMP ? NO_TIMESTAMP : `[${seg.timestamp}]`}
+                          </span>
                           <strong className="text-[#231612] mr-1.5">{seg.speaker}:</strong>
                           <span>{seg.text}</span>
                           {seg.verificationNote && (

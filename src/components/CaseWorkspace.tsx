@@ -43,6 +43,7 @@ interface CaseWorkspaceProps {
   ) => void;
   onGoToMap: () => void;
   initialSubTab?: 'documents' | 'intelligence';
+  onSubTabChange?: (tab: 'documents' | 'intelligence') => void;
 }
 
 const CATEGORIES: DocumentCategory[] = [
@@ -62,8 +63,13 @@ export const CaseWorkspace: React.FC<CaseWorkspaceProps> = ({
   onOpenDocument,
   onGoToMap,
   initialSubTab = 'documents',
+  onSubTabChange,
 }) => {
-  const [subTab, setSubTab] = useState<'documents' | 'intelligence'>(initialSubTab);
+  const [subTab, setSubTabState] = useState<'documents' | 'intelligence'>(initialSubTab);
+  const setSubTab = (tab: 'documents' | 'intelligence') => {
+    setSubTabState(tab);
+    onSubTabChange?.(tab);
+  };
   const [isParsingFiles, setIsParsingFiles] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStepText, setAnalysisStepText] = useState('');

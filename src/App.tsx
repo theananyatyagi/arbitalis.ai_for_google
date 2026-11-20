@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DEMO_CASE } from './data/demoCase';
 import type {
   AppView,
@@ -14,6 +14,7 @@ import type {
 import { TopNav } from './components/TopNav';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { DemoTourController } from './components/DemoTourController';
+import { DEMO_STAGE_COUNT, getDemoStage } from './data/demoTour';
 import { CaseWorkspace, type StagedPdfUpload } from './components/CaseWorkspace';
 import { DisputeReasoningMap } from './components/DisputeReasoningMap';
 import { FindingsReviewBoard } from './components/FindingsReviewBoard';
@@ -40,12 +41,9 @@ export default function App() {
   const [liveCase, setLiveCase] = useState<ArbitrationCase | null>(null);
   const [stagedUploads, setStagedUploads] = useState<StagedPdfUpload[]>([]);
 
-  // Guided Demo Tour State (6 stages)
+  // Guided Demo Tour State (5 manual stages, see src/data/demoTour.ts)
   const [isDemoTourActive, setIsDemoTourActive] = useState(false);
   const [demoStage, setDemoStage] = useState(1);
-  const [isDemoPlaying, setIsDemoPlaying] = useState(false);
-  const [autoPausedReason, setAutoPausedReason] = useState<string | null>(null);
-  const [demoRevealCount, setDemoRevealCount] = useState<number | null>(null);
 
   // Map & Review Selection State
   const [selectedIssueId, setSelectedIssueId] = useState<string>(DEMO_CASE.issues[0].id);
@@ -60,99 +58,49 @@ export default function App() {
   const currentCase: ArbitrationCase | null =
     activeOrigin === 'demo' ? demoCase : liveCase;
 
-  const pauseTourOnUserInteraction = useCallback(
-    (reason: string) => {
-      if (isDemoTourActive && isDemoPlaying) {
-        setIsDemoPlaying(false);
-        setAutoPausedReason(reason);
-      }
-    },
-    [isDemoTourActive, isDemoPlaying]
-  );
+  // The guided demo is manual-only (no autoplay), so user interactions never need to pause it.
+  // Child components still report interactions through this callback.
+  const noteUserInteraction = useCallback((_reason: string) => {}, []);
 
-  // Synchronize view & stage behavior when Guided Demo stage changes
+  // Open the view/mode for a guided-demo stage. Never touches drafting text, reviews or live-case data.
   const applyDemoStage = useCallback((stage: number) => {
-    setDemoStage(stage);
+    const cfg = getDemoStage(stage);
+    setDemoStage(cfg.stage);
     setActiveOrigin('demo');
-    setSelectedIssueId(DEMO_CASE.issues[0].id);
-
-    if (stage === 1) {
-      setActiveView('workspace');
-      setWorkspaceSubTab('documents');
-      setDemoRevealCount(null);
+    setActiveView(cfg.view);
+    if (cfg.workspaceSubTab) setWorkspaceSubTab(cfg.workspaceSubTab);
+    if (cfg.mapMode) {
+      setSelectedIssueId(DEMO_CASE.issues[0].id);
       setSelectedNodeId(null);
-    } else if (stage === 2) {
-      setActiveView('workspace');
-      setWorkspaceSubTab('documents');
-      setDemoRevealCount(null);
-    } else if (stage === 3) {
-      setActiveView('workspace');
-      setWorkspaceSubTab('intelligence');
-      setDemoRevealCount(null);
-    } else if (stage === 4) {
-      setActiveView('map');
-      setDemoRevealCount(1);
-      setSelectedNodeId('node-central-delay');
-    } else if (stage === 5) {
-      setActiveView('map');
-      setDemoRevealCount(null);
-      setSelectedNodeId('node-ev-crane-log');
-    } else if (stage === 6) {
-      setActiveView('review');
-      setDemoRevealCount(null);
-      setFocusedReviewNodeId('node-missing-schedule');
     }
+    if (cfg.ariaSuggestedQuestion) setAriaPrefill(cfg.ariaSuggestedQuestion);
   }, []);
 
-  // Auto-advance Guided Demo Stages when Playing
-  useEffect(() => {
-    if (!isDemoTourActive || !isDemoPlaying) return;
-    if (demoStage >= 6) {
-      setIsDemoPlaying(false);
+  const handleTourPrimaryAction = () => {
+    if (demoStage === 2 && workspaceSubTab === 'documents') {
+      setWorkspaceSubTab('intelligence');
       return;
     }
-
-    const timer = window.setTimeout(() => {
-      applyDemoStage(demoStage + 1);
-    }, 10500);
-
-    return () => window.clearTimeout(timer);
-  }, [isDemoTourActive, isDemoPlaying, demoStage, applyDemoStage]);
-
-  // Sequential node reveal on Stage 4 without blocking user actions
-  useEffect(() => {
-    if (!isDemoTourActive || demoStage !== 4) {
-      setDemoRevealCount(null);
+    if (demoStage >= DEMO_STAGE_COUNT) {
+      setIsDemoTourActive(false);
       return;
     }
-    const totalIssueNodes = demoCase.nodes.filter(
-      (n) => n.issueId === DEMO_CASE.issues[0].id
-    ).length;
+    applyDemoStage(demoStage + 1);
+  };
 
-    if ((demoRevealCount ?? 1) >= totalIssueNodes) return;
-
-    const interval = window.setInterval(() => {
-      setDemoRevealCount((prev) => {
-        const next = (prev ?? 1) + 1;
-        return next > totalIssueNodes ? totalIssueNodes : next;
-      });
-    }, 750);
-
-    return () => window.clearInterval(interval);
-  }, [isDemoTourActive, demoStage, demoRevealCount, demoCase.nodes]);
+  const tourPrimaryLabel =
+    demoStage === 2 && workspaceSubTab === 'intelligence'
+      ? 'Next: Investigate the contradiction'
+      : undefined;
 
   const handleStartDemo = () => {
     setActiveOrigin('demo');
     setIsDemoTourActive(true);
-    setIsDemoPlaying(true);
-    setAutoPausedReason(null);
     applyDemoStage(1);
   };
 
   const handleStartLiveAnalysis = () => {
     setIsDemoTourActive(false);
-    setIsDemoPlaying(false);
-    setAutoPausedReason(null);
     setActiveOrigin('live');
     setSelectedNodeId(null);
     setFocusedReviewNodeId(null);
@@ -162,8 +110,6 @@ export default function App() {
 
   const handleSwitchOrigin = (target: CaseOrigin) => {
     setIsDemoTourActive(false);
-    setIsDemoPlaying(false);
-    setAutoPausedReason(null);
     setActiveOrigin(target);
     setSelectedNodeId(null);
     setFocusedReviewNodeId(null);
@@ -183,7 +129,7 @@ export default function App() {
     verificationReason?: string,
     attributionType?: AttributionType
   ) => {
-    pauseTourOnUserInteraction('Opened source document');
+    noteUserInteraction('Opened source document');
     setSourceViewer({
       doc,
       page,
@@ -290,9 +236,6 @@ export default function App() {
         activeView={activeView}
         onNavigate={(view) => {
           setActiveView(view);
-          if (view === 'home') {
-            setIsDemoPlaying(false);
-          }
         }}
         activeOrigin={activeOrigin}
         onSwitchOrigin={handleSwitchOrigin}
@@ -302,53 +245,14 @@ export default function App() {
       {isDemoTourActive && (
         <DemoTourController
           currentStage={demoStage}
-          isPlaying={isDemoPlaying}
-          autoPausedReason={autoPausedReason}
-          onPlay={() => {
-            setAutoPausedReason(null);
-            setIsDemoPlaying(true);
-          }}
-          onPause={() => {
-            setIsDemoPlaying(false);
-            setAutoPausedReason('Manual pause');
-          }}
-          onNext={() => {
-            setAutoPausedReason(null);
-            applyDemoStage(Math.min(6, demoStage + 1));
-          }}
-          onPrevious={() => {
-            setAutoPausedReason(null);
-            applyDemoStage(Math.max(1, demoStage - 1));
-          }}
-          onReplay={() => {
-            setAutoPausedReason(null);
-            setIsDemoPlaying(true);
-            applyDemoStage(1);
-          }}
-          onExit={() => {
-            setIsDemoTourActive(false);
-            setIsDemoPlaying(false);
-            setAutoPausedReason(null);
-            setDemoRevealCount(null);
-          }}
-          onSelectStage={(stage) => {
-            setAutoPausedReason(null);
-            applyDemoStage(stage);
-          }}
-          onOpenAriaWithSample={() => {
-            pauseTourOnUserInteraction('Opened ARIA sample briefing');
-            setAriaPrefill(
-              'What evidence suggests that the contractor was already delayed?'
-            );
-            setActiveView('aria');
-          }}
-          onExploreMap={() => {
-            setIsDemoTourActive(false);
-            setIsDemoPlaying(false);
-            setDemoRevealCount(null);
-            setActiveView('map');
-          }}
+          primaryLabel={tourPrimaryLabel}
+          onPrimaryAction={handleTourPrimaryAction}
+          onPrevious={() => applyDemoStage(Math.max(1, demoStage - 1))}
+          onReplay={() => applyDemoStage(1)}
+          onExit={() => setIsDemoTourActive(false)}
+          onSelectStage={applyDemoStage}
           onAnalyseOwnCase={handleStartLiveAnalysis}
+          onOpenHearing={() => setActiveView('hearing')}
         />
       )}
 
@@ -379,6 +283,7 @@ export default function App() {
             }
             onGoToMap={() => setActiveView('map')}
             initialSubTab={workspaceSubTab}
+            onSubTabChange={setWorkspaceSubTab}
           />
         )}
 
@@ -410,15 +315,15 @@ export default function App() {
               setActiveView('review');
             }}
             onOpenAria={() => {
-              pauseTourOnUserInteraction('Opened ARIA from Dispute Map');
+              noteUserInteraction('Opened ARIA from Dispute Map');
               setAriaPrefill(undefined);
               setActiveView('aria');
             }}
-            onUserInteraction={pauseTourOnUserInteraction}
-            demoRevealCount={isDemoTourActive && demoStage === 4 ? demoRevealCount : null}
+            onUserInteraction={noteUserInteraction}
+            requestedViewMode={isDemoTourActive ? getDemoStage(demoStage).mapMode : undefined}
             onUpdateNodeReview={handleUpdateNodeReview}
             onAskAriaAboutNode={(node) => {
-              pauseTourOnUserInteraction(`Asked ARIA about ${node.label}`);
+              noteUserInteraction(`Asked ARIA about ${node.label}`);
               setAriaPrefill(
                 `What does the documentary record establish regarding "${node.label}"?`
               );
@@ -433,7 +338,7 @@ export default function App() {
             focusedNodeId={focusedReviewNodeId}
             onUpdateNodeReview={handleUpdateNodeReview}
             onOpenCitation={handleOpenCitation}
-            onUserInteraction={pauseTourOnUserInteraction}
+            onUserInteraction={noteUserInteraction}
           />
         )}
 
@@ -447,7 +352,7 @@ export default function App() {
             activeCase={currentCase}
             prefilledQuestion={ariaPrefill}
             onOpenDocumentById={handleOpenDocumentById}
-            onUserInteraction={pauseTourOnUserInteraction}
+            onUserInteraction={noteUserInteraction}
             onSwitchToDemo={() => handleSwitchOrigin('demo')}
           />
         </div>
@@ -460,7 +365,7 @@ export default function App() {
             activeCase={currentCase}
             activeOrigin={activeOrigin}
             onSaveTranscript={handleSaveTranscript}
-            onUserInteraction={pauseTourOnUserInteraction}
+            onUserInteraction={noteUserInteraction}
           />
         </div>
 
@@ -470,7 +375,7 @@ export default function App() {
             selectedIssueId={selectedIssueId}
             onSelectIssue={setSelectedIssueId}
             onOpenCitation={handleOpenCitation}
-            onUserInteraction={pauseTourOnUserInteraction}
+            onUserInteraction={noteUserInteraction}
             onGoToWorkspace={() => setActiveView('workspace')}
           />
         )}

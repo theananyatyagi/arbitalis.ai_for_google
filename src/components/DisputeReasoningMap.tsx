@@ -38,6 +38,8 @@ interface DisputeReasoningMapProps {
   onOpenAria: () => void;
   onUserInteraction: (reason: string) => void;
   demoRevealCount?: number | null;
+  /** Opens the map in this presentation (used by the guided demo to open Compare Positions). */
+  requestedViewMode?: 'graph' | 'compare' | 'list';
   onUpdateNodeReview?: (nodeId: string, decision: ReviewDecision, note?: string) => void;
   onAskAriaAboutNode?: (node: DisputeNode) => void;
 }
@@ -125,10 +127,14 @@ export const DisputeReasoningMap: React.FC<DisputeReasoningMapProps> = ({
   onOpenAria,
   onUserInteraction,
   demoRevealCount = null,
+  requestedViewMode,
   onUpdateNodeReview,
   onAskAriaAboutNode,
 }) => {
-  const [viewMode, setViewMode] = useState<'graph' | 'compare' | 'list'>('graph');
+  const [viewMode, setViewMode] = useState<'graph' | 'compare' | 'list'>(requestedViewMode ?? 'graph');
+  useEffect(() => {
+    if (requestedViewMode) setViewMode(requestedViewMode);
+  }, [requestedViewMode]);
   const [zoom, setZoom] = useState<number>(0.92);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
