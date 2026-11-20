@@ -25,7 +25,12 @@ interface HearingTranscriptionModalProps {
   activeOrigin: 'demo' | 'live';
   onSaveTranscript: (record: HearingTranscriptRecord) => void;
   onUserInteraction: (reason: string) => void;
+  /** 'modal' = overlay (default); 'page' = dedicated Hearing Intelligence workspace. */
+  variant?: 'modal' | 'page';
 }
+
+const NO_TIMESTAMP = 'Not timestamped';
+const UNATTRIBUTED_SPEAKER = 'Unattributed speaker';
 
 export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps> = ({
   isOpen,
@@ -34,6 +39,7 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
   activeOrigin,
   onSaveTranscript,
   onUserInteraction,
+  variant = 'modal',
 }) => {
   const [title, setTitle] = useState('Preliminary Hearing Recording');
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -48,7 +54,8 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
   const audioChunksRef = useRef<Blob[]>([]);
   const lastAudioRef = useRef<{ blob: Blob; filename: string } | null>(null);
 
-  if (!isOpen) return null;
+  const isPage = variant === 'page';
+  if (!isOpen && !isPage) return null;
 
   const transcribeBlobOrFile = async (blob: Blob, filename: string) => {
     lastAudioRef.current = { blob, filename };
@@ -64,6 +71,7 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
 
       const parsed = await fetchApiJson<{
         segments?: { timestamp: string; speaker: string; text: string }[];
+        model?: string;
       }>('/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -79,11 +87,18 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
         return;
       }
 
+      // The plain-text transcription model returns no timing or speaker data; the server
+      // fills those fields with placeholders (index-based times, "Speaker N"). Never present
+      // placeholders as recorded facts.
+      const plainTextModel = parsed.data.model === 'gemini-3.5-transcribe';
       const segments: TranscriptSegment[] = (parsed.data.segments || []).map(
         (s, idx) => ({
           id: `seg-${Date.now()}-${idx}`,
-          timestamp: s.timestamp || '00:00:00',
-          speaker: s.speaker || 'Speaker',
+          timestamp: plainTextModel || !s.timestamp ? NO_TIMESTAMP : s.timestamp,
+          speaker:
+            !s.speaker || (plainTextModel && /^Speaker \d+$/.test(s.speaker))
+              ? UNATTRIBUTED_SPEAKER
+              : s.speaker,
           text: s.text || '',
           verificationNote: 'Recorded statement — requires verification before treating as established fact.',
         })
@@ -187,17 +202,26 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#231612]/60 backdrop-blur-[2px] flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
+      className={
+        isPage
+          ? 'max-w-5xl mx-auto w-full px-4 sm:px-8 py-6'
+          : 'fixed inset-0 z-50 bg-[#231612]/60 backdrop-blur-[2px] flex items-center justify-center p-4 sm:p-6'
+      }
+      {...(isPage ? { role: 'region' } : { role: 'dialog', 'aria-modal': true })}
       aria-labelledby="transcription-modal-title"
     >
-      <div className="bg-white border border-[#DED6CF] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div
+        className={
+          isPage
+            ? 'bg-white border border-[#E4DED8] rounded-2xl w-full flex flex-col overflow-hidden'
+            : 'bg-white border border-[#DED6CF] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl'
+        }
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-[#F5F1EC] border-b border-[#DED6CF] flex items-start justify-between gap-4">
           <div>
             <div className="text-xs font-medium text-[#7E2833]">
-              Tools · Gemini Hearing Transcription
+              Hearing Intelligence · Gemini Transcription
             </div>
             <h2
               id="transcription-modal-title"
@@ -209,18 +233,20 @@ export const HearingTranscriptionModal: React.FC<HearingTranscriptionModalProps>
               Recorded statements are attributed to speakers and marked for verification — never treated automatically as established facts.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close hearing transcription"
-            className="p-2 rounded-lg text-[#231612]/70 hover:text-[#231612] hover:bg-[#DED6CF]/40 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isPage && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close hearing transcription"
+              className="p-2 rounded-lg text-[#231612]/70 hover:text-[#231612] hover:bg-[#DED6CF]/40 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className={`flex-1 p-6 space-y-6 ${isPage ? '' : 'overflow-y-auto'}`}>
           {/* Upload / Record Controls */}
           <div className="p-5 rounded-xl bg-[#F5F1EC] border border-[#DED6CF] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end gap-3">

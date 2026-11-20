@@ -20,6 +20,7 @@ import { FindingsReviewBoard } from './components/FindingsReviewBoard';
 import { SourceViewerModal } from './components/SourceViewerModal';
 import { AriaBriefingDrawer } from './components/AriaBriefingDrawer';
 import { HearingTranscriptionModal } from './components/HearingTranscriptionModal';
+import { SageDraftingWorkspace } from './components/SageDraftingWorkspace';
 
 interface SourceViewerState {
   doc: CaseDocument;
@@ -54,9 +55,7 @@ export default function App() {
 
   // Modals / Drawers
   const [sourceViewer, setSourceViewer] = useState<SourceViewerState | null>(null);
-  const [ariaOpen, setAriaOpen] = useState(false);
   const [ariaPrefill, setAriaPrefill] = useState<string | undefined>(undefined);
-  const [transcriptionOpen, setTranscriptionOpen] = useState(false);
 
   const currentCase: ArbitrationCase | null =
     activeOrigin === 'demo' ? demoCase : liveCase;
@@ -297,15 +296,6 @@ export default function App() {
         }}
         activeOrigin={activeOrigin}
         onSwitchOrigin={handleSwitchOrigin}
-        onOpenAria={() => {
-          pauseTourOnUserInteraction('Opened ARIA panel');
-          setAriaPrefill(undefined);
-          setAriaOpen(true);
-        }}
-        onOpenTranscription={() => {
-          pauseTourOnUserInteraction('Opened Hearing Transcription');
-          setTranscriptionOpen(true);
-        }}
         isDemoTourActive={isDemoTourActive}
       />
 
@@ -350,7 +340,7 @@ export default function App() {
             setAriaPrefill(
               'What evidence suggests that the contractor was already delayed?'
             );
-            setAriaOpen(true);
+            setActiveView('aria');
           }}
           onExploreMap={() => {
             setIsDemoTourActive(false);
@@ -422,7 +412,7 @@ export default function App() {
             onOpenAria={() => {
               pauseTourOnUserInteraction('Opened ARIA from Dispute Map');
               setAriaPrefill(undefined);
-              setAriaOpen(true);
+              setActiveView('aria');
             }}
             onUserInteraction={pauseTourOnUserInteraction}
             demoRevealCount={isDemoTourActive && demoStage === 4 ? demoRevealCount : null}
@@ -432,7 +422,7 @@ export default function App() {
               setAriaPrefill(
                 `What does the documentary record establish regarding "${node.label}"?`
               );
-              setAriaOpen(true);
+              setActiveView('aria');
             }}
           />
         )}
@@ -444,6 +434,44 @@ export default function App() {
             onUpdateNodeReview={handleUpdateNodeReview}
             onOpenCitation={handleOpenCitation}
             onUserInteraction={pauseTourOnUserInteraction}
+          />
+        )}
+
+        {/* ARIA and Hearing stay mounted (hidden when inactive) so a conversation or an unsaved
+            transcript draft survives tab changes. */}
+        <div className={activeView === 'aria' ? '' : 'hidden'}>
+          <AriaBriefingDrawer
+            variant="page"
+            isOpen
+            onClose={() => setActiveView('home')}
+            activeCase={currentCase}
+            prefilledQuestion={ariaPrefill}
+            onOpenDocumentById={handleOpenDocumentById}
+            onUserInteraction={pauseTourOnUserInteraction}
+            onSwitchToDemo={() => handleSwitchOrigin('demo')}
+          />
+        </div>
+
+        <div className={activeView === 'hearing' ? '' : 'hidden'}>
+          <HearingTranscriptionModal
+            variant="page"
+            isOpen
+            onClose={() => setActiveView('home')}
+            activeCase={currentCase}
+            activeOrigin={activeOrigin}
+            onSaveTranscript={handleSaveTranscript}
+            onUserInteraction={pauseTourOnUserInteraction}
+          />
+        </div>
+
+        {activeView === 'sage' && (
+          <SageDraftingWorkspace
+            activeCase={currentCase}
+            selectedIssueId={selectedIssueId}
+            onSelectIssue={setSelectedIssueId}
+            onOpenCitation={handleOpenCitation}
+            onUserInteraction={pauseTourOnUserInteraction}
+            onGoToWorkspace={() => setActiveView('workspace')}
           />
         )}
       </div>
@@ -469,25 +497,6 @@ export default function App() {
         verificationReason={sourceViewer?.verificationReason}
         attributionType={sourceViewer?.attributionType}
         onClose={() => setSourceViewer(null)}
-      />
-
-      <AriaBriefingDrawer
-        isOpen={ariaOpen}
-        onClose={() => setAriaOpen(false)}
-        activeCase={currentCase}
-        prefilledQuestion={ariaPrefill}
-        onOpenDocumentById={handleOpenDocumentById}
-        onUserInteraction={pauseTourOnUserInteraction}
-        onSwitchToDemo={() => handleSwitchOrigin('demo')}
-      />
-
-      <HearingTranscriptionModal
-        isOpen={transcriptionOpen}
-        onClose={() => setTranscriptionOpen(false)}
-        activeCase={currentCase}
-        activeOrigin={activeOrigin}
-        onSaveTranscript={handleSaveTranscript}
-        onUserInteraction={pauseTourOnUserInteraction}
       />
     </div>
   );

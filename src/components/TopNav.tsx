@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Mic, Sparkles, FolderGit2 } from 'lucide-react';
+import { ChevronDown, FolderGit2 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import type { AppView, CaseOrigin } from '../types/arbitration';
 
@@ -8,8 +8,6 @@ interface TopNavProps {
   onNavigate: (view: AppView) => void;
   activeOrigin: CaseOrigin;
   onSwitchOrigin: (origin: CaseOrigin) => void;
-  onOpenAria: () => void;
-  onOpenTranscription: () => void;
   isDemoTourActive: boolean;
 }
 
@@ -18,8 +16,6 @@ export const TopNav: React.FC<TopNavProps> = ({
   onNavigate,
   activeOrigin,
   onSwitchOrigin,
-  onOpenAria,
-  onOpenTranscription,
   isDemoTourActive,
 }) => {
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -35,16 +31,21 @@ export const TopNav: React.FC<TopNavProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navItems: { id: AppView; label: string }[] = [
-    { id: 'home', label: 'Home' },
-    { id: 'workspace', label: 'Case Workspace' },
-    { id: 'map', label: 'Dispute Map' },
-    { id: 'review', label: 'Findings Review' },
+  const navItems: { id: AppView; label: string; short: string }[] = [
+    { id: 'home', label: 'Home', short: 'Home' },
+    { id: 'workspace', label: 'Case Workspace', short: 'Workspace' },
+    { id: 'map', label: 'Dispute Map', short: 'Map' },
+    { id: 'aria', label: 'Ask ARIA', short: 'ARIA' },
+    { id: 'hearing', label: 'Hearing Intelligence', short: 'Hearing' },
+    { id: 'sage', label: 'SAGE Drafting', short: 'SAGE' },
   ];
+  // Findings Review is no longer a primary destination, but remains reachable from the map
+  // and the guided demo; keep Dispute Map highlighted while it is open.
+  const highlightedView: AppView = activeView === 'review' ? 'map' : activeView;
 
   return (
     <header className="sticky top-0 z-40 bg-[#F5F1EC]/95 backdrop-blur-sm border-b border-[#DED6CF]">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4 sm:gap-8">
         {/* Zone 1: Official Arbitalis.AI Logo */}
         <button
           type="button"
@@ -52,21 +53,22 @@ export const TopNav: React.FC<TopNavProps> = ({
           aria-label="Arbitalis.AI Home"
           className="flex items-center whitespace-nowrap shrink-0 text-left group cursor-pointer"
         >
-          <BrandLogo className="h-9 sm:h-10 w-auto object-contain transition-transform duration-150 group-hover:scale-[1.02]" />
+          <BrandLogo />
         </button>
 
         {/* Zone 2: Four primary destinations */}
         <nav
           aria-label="Primary navigation"
-          className="hidden md:flex items-center gap-7"
+          className="hidden lg:flex items-center gap-6"
         >
           {navItems.map((item) => {
-            const isActive = activeView === item.id;
+            const isActive = highlightedView === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => onNavigate(item.id)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`relative py-1 text-sm font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   isActive
                     ? 'text-[#7E2833]'
@@ -108,44 +110,6 @@ export const TopNav: React.FC<TopNavProps> = ({
                 role="menuitem"
                 onClick={() => {
                   setToolsOpen(false);
-                  onOpenAria();
-                }}
-                className="w-full px-4 py-2.5 text-left flex items-start gap-3 hover:bg-[#F5F1EC] transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-[#7E2833] mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold text-[#231612]">Ask ARIA Briefing</div>
-                  <div className="text-[11px] text-[#231612]/65">
-                    Voice & text Q&amp;A grounded in active case
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setToolsOpen(false);
-                  onOpenTranscription();
-                }}
-                className="w-full px-4 py-2.5 text-left flex items-start gap-3 hover:bg-[#F5F1EC] transition-colors cursor-pointer"
-              >
-                <Mic className="w-4 h-4 text-[#7E2833] mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold text-[#231612]">Hearing Transcription</div>
-                  <div className="text-[11px] text-[#231612]/65">
-                    Transcribe &amp; review hearing audio
-                  </div>
-                </div>
-              </button>
-
-              <div className="my-1 border-t border-[#DED6CF]" />
-
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setToolsOpen(false);
                   onSwitchOrigin(activeOrigin === 'demo' ? 'live' : 'demo');
                 }}
                 className="w-full px-4 py-2.5 text-left flex items-start gap-3 hover:bg-[#F5F1EC] transition-colors cursor-pointer"
@@ -174,20 +138,21 @@ export const TopNav: React.FC<TopNavProps> = ({
       {/* Mobile primary navigation strip */}
       <nav
         aria-label="Mobile navigation"
-        className="md:hidden flex items-center justify-around border-t border-[#DED6CF] bg-[#F5F1EC] px-2 py-1.5"
+        className="lg:hidden grid grid-cols-6 gap-0.5 border-t border-[#DED6CF] bg-[#F5F1EC] px-2 py-1.5"
       >
         {navItems.map((item) => {
-          const isActive = activeView === item.id;
+          const isActive = highlightedView === item.id;
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => onNavigate(item.id)}
-              className={`px-2 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-colors ${
-                isActive ? 'text-[#7E2833] bg-white' : 'text-[#231612]/75'
+              aria-current={isActive ? 'page' : undefined}
+              className={`px-0 py-2 text-[10.5px] sm:text-xs tracking-tight font-medium whitespace-nowrap rounded-md transition-colors cursor-pointer ${
+                isActive ? 'text-[#7E2833] bg-white font-semibold' : 'text-[#231612]/75'
               }`}
             >
-              {item.label}
+              {item.short}
             </button>
           );
         })}

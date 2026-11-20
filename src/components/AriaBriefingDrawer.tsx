@@ -34,6 +34,8 @@ interface AriaBriefingDrawerProps {
   onOpenDocumentById: (docId: string) => void;
   onUserInteraction: (reason: string) => void;
   onSwitchToDemo?: () => void;
+  /** 'drawer' = overlay (default); 'page' = dedicated full-page workspace. */
+  variant?: 'drawer' | 'page';
 }
 
 export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
@@ -44,6 +46,7 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
   onOpenDocumentById,
   onUserInteraction,
   onSwitchToDemo,
+  variant = 'drawer',
 }) => {
   const [question, setQuestion] = useState('');
   const [includeVoice, setIncludeVoice] = useState(true);
@@ -70,7 +73,8 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
     setError(null);
   }, [activeCase?.id]);
 
-  if (!isOpen) return null;
+  const isPage = variant === 'page';
+  if (!isOpen && !isPage) return null;
 
   const sampleQuestions =
     activeCase?.origin === 'demo'
@@ -221,12 +225,23 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-[#231612]/45 backdrop-blur-[1px]"
-      role="dialog"
-      aria-modal="true"
+      className={
+        isPage
+          ? 'max-w-4xl mx-auto w-full px-4 sm:px-8 py-6'
+          : 'fixed inset-0 z-50 flex justify-end bg-[#231612]/45 backdrop-blur-[1px]'
+      }
+      {...(isPage
+        ? { role: 'region' }
+        : { role: 'dialog', 'aria-modal': true })}
       aria-labelledby="aria-drawer-title"
     >
-      <div className="w-full max-w-xl bg-white h-full border-l border-[#DED6CF] flex flex-col shadow-2xl">
+      <div
+        className={
+          isPage
+            ? 'w-full bg-white border border-[#E4DED8] rounded-2xl flex flex-col overflow-hidden h-[calc(100dvh-11rem)] min-h-[560px]'
+            : 'w-full max-w-xl bg-white h-full border-l border-[#DED6CF] flex flex-col shadow-2xl'
+        }
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-[#F5F1EC] border-b border-[#DED6CF] flex items-start justify-between gap-4">
           <div>
@@ -251,6 +266,7 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
             </p>
           </div>
 
+          {!isPage && (
           <button
             type="button"
             onClick={() => {
@@ -262,6 +278,7 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+          )}
         </div>
 
         {/* Scrollable Briefing Thread */}
@@ -446,9 +463,13 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
               type="button"
               onClick={handleToggleMic}
               disabled={isTranscribingVoiceQ || !activeCase}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 ${
+              className={`inline-flex items-center gap-1.5 rounded-md font-medium transition-colors cursor-pointer disabled:opacity-40 ${
+                isPage ? 'px-4 py-2 text-sm' : 'px-2.5 py-1 text-xs'
+              } ${
                 isRecording
-                  ? 'bg-[#7E2833] text-white'
+                  ? 'bg-[#231612] text-white'
+                  : isPage
+                  ? 'bg-[#7E2833] text-white hover:bg-[#60111E]'
                   : 'bg-white border border-[#DED6CF] text-[#231612] hover:bg-[#DED6CF]/30'
               }`}
             >
@@ -464,7 +485,7 @@ export const AriaBriefingDrawer: React.FC<AriaBriefingDrawerProps> = ({
                 </>
               ) : (
                 <>
-                  <Mic className="w-3 h-3 text-[#7E2833]" />
+                  <Mic className={`w-3.5 h-3.5 ${isPage ? 'text-white' : 'text-[#7E2833]'}`} />
                   <span>Speak Question</span>
                 </>
               )}
