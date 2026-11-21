@@ -4,7 +4,6 @@ dotenv.config();
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import {
   analyzeArbitrationDocuments,
   askAriaBriefing,
@@ -334,13 +333,19 @@ app.all('/api/*', (_req, res) => {
 });
 
 async function startServer() {
-  if (process.env.NODE_ENV === 'production') {
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.npm_lifecycle_event === 'start' ||
+    Boolean(process.env.K_SERVICE);
+
+  if (isProduction) {
     const distDir = path.resolve('dist');
     app.use(express.static(distDir));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distDir, 'index.html'));
     });
   } else {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
